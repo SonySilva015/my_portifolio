@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { Lock } from 'lucide-react';
 
 type Props = {
     children?: React.ReactNode;
@@ -8,12 +9,36 @@ type Props = {
     activeColor?: string;
     size?: number;
     blur?: number;
-    /** Ativa grid + scanlines + scan sweep + matrix rain de fundo. Default: true */
+    /** Ativa grid + scanlines + scan sweep + decoração pentest + matrix rain de fundo. Default: true */
     showTexture?: boolean;
 };
 
-const MATRIX_CHARS =
-    'アイウエオカキクケコサシスセソタチツテト0123456789';
+const MATRIX_CHARS = 'アイウエオカキクケコ01';
+
+const codeSnippets = [
+    { text: 'import socket', top: '8%', left: '4%', rotate: -6 },
+    { text: 'nmap -sV target', top: '22%', left: '88%', rotate: 4 },
+    { text: 'def scan_ports():', top: '68%', left: '3%', rotate: 3 },
+    { text: "sudo ./exploit.py", top: '85%', left: '80%', rotate: -4 },
+    { text: '0x41414141', top: '40%', left: '92%', rotate: 6 },
+    { text: 'SELECT * FROM users;--', top: '55%', left: '6%', rotate: -3 },
+];
+
+const locks = [
+    { top: '14%', left: '90%', size: 18, rotate: -10 },
+    { top: '78%', left: '6%', size: 22, rotate: 8 },
+    { top: '48%', left: '2%', size: 14, rotate: -14 },
+];
+
+const stars = [
+    { top: '6%', left: '30%', delay: '0s' },
+    { top: '18%', left: '70%', delay: '1.2s' },
+    { top: '35%', left: '10%', delay: '2.4s' },
+    { top: '62%', left: '94%', delay: '0.6s' },
+    { top: '90%', left: '40%', delay: '1.8s' },
+    { top: '75%', left: '55%', delay: '3s' },
+    { top: '10%', left: '95%', delay: '2.1s' },
+];
 
 export default function BackgroundGlow({
     children,
@@ -107,7 +132,7 @@ export default function BackgroundGlow({
         };
     }, [size, blur]);
 
-    // --- Matrix rain (canvas, contido nas bordas via máscara) ---
+    // --- Matrix rain, bem discreta ---
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -118,7 +143,7 @@ export default function BackgroundGlow({
         if (!ctx) return;
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const fontSize = 16;
+        const fontSize = 22; // maior = menos colunas = mais leve e mais espaçado
         let columns = 0;
         let drops: number[] = [];
         let rainRaf: number | null = null;
@@ -132,17 +157,17 @@ export default function BackgroundGlow({
         };
 
         const drawFrame = () => {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.font = `${fontSize}px monospace`;
 
             for (let i = 0; i < drops.length; i++) {
                 const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
-                const isHead = Math.random() > 0.95;
-                ctx.fillStyle = isHead ? 'rgba(167, 243, 208, 0.9)' : 'rgba(16, 185, 129, 0.4)';
+                const isHead = Math.random() > 0.97;
+                ctx.fillStyle = isHead ? 'rgba(52, 211, 153, 0.35)' : 'rgba(6, 182, 212, 0.12)';
                 ctx.fillText(char, i * fontSize, drops[i] * fontSize);
 
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.985) {
                     drops[i] = 0;
                 }
                 drops[i]++;
@@ -150,8 +175,8 @@ export default function BackgroundGlow({
         };
 
         const loop = (timestamp: number) => {
-            // Throttle a ~20fps — suficiente pro efeito, mais barato de CPU.
-            if (timestamp - lastFrame > 50) {
+            // ~15fps — bem devagar de propósito, é só textura de fundo.
+            if (timestamp - lastFrame > 65) {
                 drawFrame();
                 lastFrame = timestamp;
             }
@@ -162,7 +187,7 @@ export default function BackgroundGlow({
         window.addEventListener('resize', resize);
 
         if (prefersReducedMotion) {
-            drawFrame(); // um frame estático só, sem loop
+            drawFrame();
         } else {
             rainRaf = requestAnimationFrame(loop);
         }
@@ -177,15 +202,41 @@ export default function BackgroundGlow({
         <div className="relative min-h-screen bg-linear-to-b from-[#000000] via-[#050a08] to-[#000000] overflow-hidden">
             {showTexture && (
                 <>
-                    {/* Matrix rain — visível só nas bordas, invisível atrás do conteúdo central */}
+                    {/* Matrix rain — bem no fundo, opacidade baixa */}
                     <canvas
                         ref={canvasRef}
-                        className="fixed inset-0 pointer-events-none z-0 opacity-70"
-                        style={{
-                            maskImage: 'radial-gradient(ellipse at center, transparent 35%, black 85%)',
-                            WebkitMaskImage: 'radial-gradient(ellipse at center, transparent 35%, black 85%)',
-                        }}
+                        className="fixed inset-0 pointer-events-none z-0 opacity-30"
                     />
+
+                    {/* Decoração pentest — cadeados, trechos de código, estrelas */}
+                    <div className="fixed inset-0 pointer-events-none z-0 select-none">
+                        {codeSnippets.map((s, i) => (
+                            <span
+                                key={`code-${i}`}
+                                className="absolute font-mono text-[11px] text-emerald-300/[0.08] whitespace-nowrap"
+                                style={{ top: s.top, left: s.left, transform: `rotate(${s.rotate}deg)` }}
+                            >
+                                {s.text}
+                            </span>
+                        ))}
+
+                        {locks.map((l, i) => (
+                            <Lock
+                                key={`lock-${i}`}
+                                size={l.size}
+                                className="absolute text-cyan-300/[0.09]"
+                                style={{ top: l.top, left: l.left, transform: `rotate(${l.rotate}deg)` }}
+                            />
+                        ))}
+
+                        {stars.map((s, i) => (
+                            <span
+                                key={`star-${i}`}
+                                className="absolute w-1 h-1 rounded-full bg-white/20 motion-safe:animate-pulse"
+                                style={{ top: s.top, left: s.left, animationDelay: s.delay, animationDuration: '4s' }}
+                            />
+                        ))}
+                    </div>
 
                     {/* Grid fino */}
                     <div
@@ -210,12 +261,12 @@ export default function BackgroundGlow({
                         }}
                     />
 
-                    {/* Scan sweep com glitch periódico */}
+                    {/* Scan sweep */}
                     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden motion-reduce:hidden">
                         <div className="scan-sweep" />
                     </div>
 
-                    {/* Readout de canto — HUD persistente */}
+                    {/* Readout de canto */}
                     <div className="fixed bottom-4 left-4 z-0 pointer-events-none font-mono text-[10px] text-emerald-400/40 flex items-center gap-2 select-none">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 animate-pulse" />
                         <span>root@sony — secure_connection</span>
@@ -228,16 +279,11 @@ export default function BackgroundGlow({
               right: 0;
               height: 120px;
               background: linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.05), transparent);
-              animation: scan-sweep-move 9s linear infinite, scan-sweep-glitch 15s steps(1) infinite;
+              animation: scan-sweep-move 9s linear infinite;
             }
             @keyframes scan-sweep-move {
               0%   { top: -120px; }
               100% { top: 100%; }
-            }
-            @keyframes scan-sweep-glitch {
-              0%, 96%, 100% { transform: translateX(0); filter: none; }
-              97% { transform: translateX(-6px); filter: hue-rotate(20deg); }
-              98% { transform: translateX(4px); filter: none; }
             }
           `}</style>
                 </>
