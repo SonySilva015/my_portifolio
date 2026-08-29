@@ -9,11 +9,9 @@ type Props = {
     activeColor?: string;
     size?: number;
     blur?: number;
-    /** Ativa grid + scanlines + scan sweep + decoração pentest + matrix rain de fundo. Default: true */
+    /** Ativa grid + scanlines + scan sweep + decoração pentest de fundo. Default: true */
     showTexture?: boolean;
 };
-
-const MATRIX_CHARS = 'アイウエオカキクケコ01';
 
 const codeSnippets = [
     { text: 'import socket', top: '8%', left: '4%', rotate: -6 },
@@ -65,7 +63,6 @@ export default function BackgroundGlow({
     const activeRGBA = useRef<number[]>(parseRGBA(activeColor));
     const currentRGBA = useRef<number[]>(parseRGBA(baseColor));
 
-    // --- Glow que segue o mouse ---
     useEffect(() => {
         const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
         let prefersReducedMotion = reducedMotionQuery.matches;
@@ -132,83 +129,11 @@ export default function BackgroundGlow({
         };
     }, [size, blur]);
 
-    // --- Matrix rain, bem discreta ---
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-    useEffect(() => {
-        if (!showTexture) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const fontSize = 22; // maior = menos colunas = mais leve e mais espaçado
-        let columns = 0;
-        let drops: number[] = [];
-        let rainRaf: number | null = null;
-        let lastFrame = 0;
-
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            columns = Math.floor(canvas.width / fontSize);
-            drops = new Array(columns).fill(0).map(() => Math.random() * -100);
-        };
-
-        const drawFrame = () => {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = `${fontSize}px monospace`;
-
-            for (let i = 0; i < drops.length; i++) {
-                const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
-                const isHead = Math.random() > 0.97;
-                ctx.fillStyle = isHead ? 'rgba(52, 211, 153, 0.35)' : 'rgba(6, 182, 212, 0.12)';
-                ctx.fillText(char, i * fontSize, drops[i] * fontSize);
-
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.985) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
-            }
-        };
-
-        const loop = (timestamp: number) => {
-            // ~15fps — bem devagar de propósito, é só textura de fundo.
-            if (timestamp - lastFrame > 65) {
-                drawFrame();
-                lastFrame = timestamp;
-            }
-            rainRaf = requestAnimationFrame(loop);
-        };
-
-        resize();
-        window.addEventListener('resize', resize);
-
-        if (prefersReducedMotion) {
-            drawFrame();
-        } else {
-            rainRaf = requestAnimationFrame(loop);
-        }
-
-        return () => {
-            window.removeEventListener('resize', resize);
-            if (rainRaf !== null) cancelAnimationFrame(rainRaf);
-        };
-    }, [showTexture]);
-
     return (
         <div className="relative min-h-screen bg-linear-to-b from-[#000000] via-[#050a08] to-[#000000] overflow-hidden">
             {showTexture && (
                 <>
-                    {/* Matrix rain — bem no fundo, opacidade baixa */}
-                    <canvas
-                        ref={canvasRef}
-                        className="fixed inset-0 pointer-events-none z-0 opacity-30"
-                    />
-
-                    {/* Decoração pentest — cadeados, trechos de código, estrelas */}
+                    {/* Decoração pentest — cadeados, trechos de código, estrelas. Discreta e estática. */}
                     <div className="fixed inset-0 pointer-events-none z-0 select-none">
                         {codeSnippets.map((s, i) => (
                             <span
